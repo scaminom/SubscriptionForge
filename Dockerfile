@@ -1,6 +1,6 @@
 FROM node:20-alpine3.18 AS base
 
-ENV DIR /app
+ENV DIR=/app
 WORKDIR $DIR
 ARG NPM_TOKEN
 
@@ -11,13 +11,16 @@ ENV NODE_ENV=development
 COPY package*.json .
 
 RUN echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ".npmrc" && \
-    npm ci && \
-    rm -f .npmrc
+  npm ci && \
+  rm -f .npmrc
 
 COPY tsconfig*.json .
 COPY .swcrc .
 COPY nodemon.json .
 COPY src src
+COPY prisma prisma
+
+RUN npx prisma generate
 
 EXPOSE $PORT
 CMD ["npm", "run", "dev"]
@@ -28,15 +31,15 @@ RUN apk update && apk add --no-cache dumb-init=1.2.5-r2
 
 COPY package*.json .
 RUN echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ".npmrc" && \
-    npm ci && \
-    rm -f .npmrc
+  npm ci && \
+  rm -f .npmrc
 
 COPY tsconfig*.json .
 COPY .swcrc .
 COPY src src
 
 RUN npm run build && \
-    npm prune --production
+  npm prune --production
 
 FROM base AS production
 
@@ -47,6 +50,9 @@ COPY --from=build /usr/bin/dumb-init /usr/bin/dumb-init
 COPY --from=build $DIR/package*.json .
 COPY --from=build $DIR/node_modules node_modules
 COPY --from=build $DIR/dist dist
+COPY --from=build $DIR/prisma prisma
+
+RUN npx prisma generate
 
 USER $USER
 EXPOSE $PORT

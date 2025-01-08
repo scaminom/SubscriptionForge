@@ -1,6 +1,6 @@
-import "@/app/config/load-env-vars";
+import "@/src/config/load-env-vars";
 
-import { Server } from "@/app/server";
+import { Server } from "@/src/server";
 
 new Server().start().catch(handleError);
 
